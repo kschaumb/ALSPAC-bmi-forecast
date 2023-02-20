@@ -1,0 +1,23 @@
+project:
+  type: book
+
+book:
+  title: "ALSPAC bmi-forecasting"
+  author: "Katherine Schaumberg"
+  date: today
+  chapters:
+    - index.qmd
+    - 01-intro.qmd
+    - 02-forecasting.qmd
+    - 03-prediction.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme: cosmo
+  pdf:
+    documentclass: scrreprt
+
+editor: visual
+

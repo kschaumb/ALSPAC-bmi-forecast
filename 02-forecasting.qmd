@@ -1,0 +1,273 @@
+# Forecasting BMI
+
+```{r, setup, include = 'false', results = 'hide'}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, out.width = '100%')
+library(fable)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(gridExtra)
+library(haven)
+library(zscorer)
+library(psych)
+library(AGD)
+library(readxl)
+load('data/ALSPAC_Cleaned.RData') 
+load('data/fcast_data.RData')
+source('R/bmiz_to_bmi.R')
+source('R/solve_for_wt.R')
+source('R/logit_transform.R')
+source('R/add_bmi_vars.R')
+```
+
+There are `r count(bmi_df_u13 |> distinct(id))[[1,1]]` individuals with four or more bmi measurements in the dataset between ages 2-13 years.
+
+```{r, include = 'false', results='hide', warning=FALSE}
+sex_vars <- bmi_df |> 
+  select(id, sex_z) |> 
+  distinct()
+fcast <- left_join(fcast_raw, sex_vars)  # adds sex as a variable to the forecasted datasets
+fcast <- add_bmi_vars(fcast) #adds bmi variables to the forecasted dataset, including 95 and 99% forecasted ranges from each model that was run
+
+#This creates a dataset with actual bmi values from age 13 plus
+bmi_df_13_plus <- bmi_df |> 
+  filter(agemos_asess_1 >= 13*12)
+
+#This joins the actual recorded values from age 13+ for bmi with the forcasted values and ranges
+bmi_df_13_plus <- merge(fcast, bmi_df_13_plus, by = c('id', 'agemos_asess_1', 'sex_z'))
+
+# Makes a dataset with each of the models independently for future use
+data_by_model <- split(bmi_df_13_plus, bmi_df_13_plus$.model)
+
+```
+
+When combining data with assessments of body weight after age 12.99, there were a total of `r nrow(data_by_model[[1]])` observations of body weight from ages 13-20 in the dataset, across `r count(data_by_model[[1]] |> distinct(id))[[1,1]]` participants.
+
+```{r, include = FALSE, results = 'hide', warning=FALSE}
+bmi_13_14 <- bmi_df_13_plus |> 
+  filter(!is.na(bmiz)) |>
+  filter(agemos_asess_1 < 14.0*12) |> #selects only assessment points between 13.0-14.0 years of age
+  mutate(lower_99_cutoff =  case_when(bmiz < bmiz_lower_99 ~ 1, 
+                                      bmiz >=bmiz_lower_99 ~ 0),
+         lower_95_cutoff =  case_when(bmiz < bmiz_lower_95 ~ 1, 
+                                      bmiz >=bmiz_lower_95 ~ 0),
+          grade_1_cutoff =  case_when(bmiz < -1 ~ 1, 
+                                      bmiz > -1 ~ 0),
+          upper_99_cutoff =  case_when(bmiz > bmiz_upper_99 ~ 1, 
+                                      bmiz < bmiz_upper_99 ~ 0),
+          upper_95_cutoff =  case_when(bmiz > bmiz_upper_95 ~ 1, 
+                                      bmiz <=bmiz_upper_95 ~ 0),
+          overweight_cutoff =  case_when(bmiz > 1 ~ 1, 
+                                      bmiz < 1 ~ 0)) |> 
+  select(c(id, sex_z, agemos_asess_1, assess_type, bmiz, bmiz_lower_99, bmiz_upper_99, lower_99_cutoff, lower_95_cutoff, grade_1_cutoff, upper_99_cutoff, upper_95_cutoff, overweight_cutoff, .model))  |> 
+  mutate(low_wt_category = factor(case_when(lower_99_cutoff == 0 & grade_1_cutoff == 0 ~ '0.No Low Wt',
+                                     lower_99_cutoff == 0 & grade_1_cutoff == 1 ~ '2.UW - No BMIZ change',
+                                     lower_99_cutoff == 1 & grade_1_cutoff == 0 ~  '1.BMIZ Reduce - No UW',
+                                     lower_99_cutoff == 1 & grade_1_cutoff == 1 ~ '3.UW plus BMIZ Reduce'))) |> 
+   mutate(high_wt_category = factor(case_when(upper_99_cutoff == 0 & overweight_cutoff == 0 ~ '0.No High Wt',
+                                     upper_99_cutoff == 0 & overweight_cutoff == 1 ~ '2.OW - No BMIZ Elevation',
+                                     upper_99_cutoff == 1 & overweight_cutoff == 0 ~ '1.BMIZ Elevate - No OW',
+                                     upper_99_cutoff == 1 & overweight_cutoff == 1 ~ '3.BMIZ Elevate + OW'))) 
+ 
+save(bmi_13_14, sex_vars, file = 'data/forecast_data.RData')    
+```
+
+```{r, include = FALSE, results = 'hide', warning=FALSE}
+bmi_13_16 <- bmi_df_13_plus |> 
+  filter(!is.na(bmiz)) |>
+  filter(agemos_asess_1 < 16*12) |> #selects only assessment points between 13.0-14.0 years of age
+  mutate(lower_99_cutoff =  case_when(bmiz < bmiz_lower_99 ~ 1, 
+                                      bmiz >=bmiz_lower_99 ~ 0),
+         lower_95_cutoff =  case_when(bmiz < bmiz_lower_95 ~ 1, 
+                                      bmiz >=bmiz_lower_95 ~ 0),
+          grade_1_cutoff =  case_when(bmiz < -1 ~ 1, 
+                                      bmiz > -1 ~ 0),
+          upper_99_cutoff =  case_when(bmiz > bmiz_upper_99 ~ 1, 
+                                      bmiz < bmiz_upper_99 ~ 0),
+          upper_95_cutoff =  case_when(bmiz > bmiz_upper_95 ~ 1, 
+                                      bmiz <=bmiz_upper_95 ~ 0),
+          overweight_cutoff =  case_when(bmiz > 1 ~ 1, 
+                                      bmiz < 1 ~ 0)) |> 
+  select(c(id, sex_z, agemos_asess_1, assess_type, bmiz, bmiz_lower_99, bmiz_upper_99, lower_99_cutoff, lower_95_cutoff, grade_1_cutoff, upper_99_cutoff, upper_95_cutoff, overweight_cutoff, .model))  |> 
+  mutate(low_wt_category = factor(case_when(lower_99_cutoff == 0 & grade_1_cutoff == 0 ~ '0.No Low Wt',
+                                     lower_99_cutoff == 0 & grade_1_cutoff == 1 ~ '2.UW - No BMIZ change',
+                                     lower_99_cutoff == 1 & grade_1_cutoff == 0 ~  '1.BMIZ Reduce - No UW',
+                                     lower_99_cutoff == 1 & grade_1_cutoff == 1 ~ '3.UW plus BMIZ Reduce'))) |> 
+   mutate(high_wt_category = factor(case_when(upper_99_cutoff == 0 & overweight_cutoff == 0 ~ '0.No High Wt',
+                                     upper_99_cutoff == 0 & overweight_cutoff == 1 ~ '2.OW - No BMIZ Elevation',
+                                     upper_99_cutoff == 1 & overweight_cutoff == 0 ~ '1.BMIZ Elevate - No OW',
+                                     upper_99_cutoff == 1 & overweight_cutoff == 1 ~ '3.BMIZ Elevate + OW'))) 
+ 
+save(bmi_13_16, sex_vars, file = 'data/bmi_13_16.RData')    
+```
+
+Below is a worked example of the steps involved in developing the BMIz forecasts:
+
+## Coding and Modeling BMIz from Growth Charts
+First, inputs (height and weight or raw BMI values with child age) are converted to BMIz score, which is plotted across childhood along with the mean BMIz and 95% confidence band for this mean. In the current study, we are using data from ages 2-13 years as our prediction set. 
+
+After all available BMIz scores are input, prediction of future BMIz is forecast which accounts for recent measures of and variability in BMIz to forecast BMIz moving forward. Further, the overall number of observations and variance in previous BMIz to create a prediction window for future observations. 
+
+Three starting models are: Mean, Random Walk, and Random Walk + Mean (RWM). In the mean model, the prediction window for BMIz score is responsive to variance of the BMIz scores in the prediction set, the predicted BMIz score is set at the mean of previous values, and the prediction interval stays constant over time. In the Random Walk model, the predicted value begins at the most recent BMIz data point (closest to age 13), and the prediction window begins very narrow, but widens over time, which accounts for increased confidence in observations that are more proximal to the last measurement. The Mean + Random Walk model combines both models, with a predicted BMIz between the mean of previous values and the most recent, and some widening of the prediction window over time. An alternative model might specify that the highest BMIz scores -- regardless of age -- define prediction (potentially defining a more conceptually pure value of developmental weight suppression).
+
+In the following example, Participant 1, 'Mara', has routine observations with BMI-Z mean of \~ -0.5 in childhood. Participant 2, 'Shannon' has routine observations with a BMI-Z of \~ 0.5, fewer assessment points, and slightly higher variability in BMIz. The Mean(@fig-mean), Random Walk(@fig-rw), and RWM(@fig-rwm) models are presented below for visualization of expected BMIz over time after age 13 for these individuals.
+
+```{r}
+bmi_data <- readxl::read_excel('data/clinic_test_data.xlsx') 
+
+adult_ht <- bmi_data %>% 
+  select(participant, adult_ht_in) %>% 
+  unique()
+
+## Clean data with needed info
+bmi_data <- bmi_data |> 
+    mutate(age = round(age_days/364.25,1)) %>% 
+    mutate(agemos = round(age *12, 0)) |> 
+    mutate(bmiz = AGD::y2z(sex = 'F', y = bmi, x = age, ref = cdc.bmi)) 
+
+#Create table with median BMI by age
+agemos = c(160:240)
+median_bmi_by_age <- tibble(agemos) |> 
+  mutate(median_bmi = bmi_lookup_cdc(2, agemos, 0))
+median_bmi_by_age$Mara <- 'Mara'
+median_bmi_by_age$Shannon <- 'Shannon'
+
+median_bmi_by_age <- tidyr::pivot_longer(median_bmi_by_age, c('Mara','Shannon'), names_to = 'participant') %>% 
+  select(-c(value)) 
+
+median_bmi_by_age <- dplyr::left_join(median_bmi_by_age, adult_ht)
+
+
+bmi_data <- full_join(bmi_data, median_bmi_by_age) %>% 
+  mutate(median_wt = if_else(agemos > 14*12, solve_for_weight(median_bmi, adult_ht_in), NaN)) |> 
+  mutate(AN_cutoff = median_wt*0.85)
+
+bmi_data_input <- bmi_data %>% 
+  filter(ed_status ==0)
+
+
+bmi_data_ed <- bmi_data %>% 
+  filter(ed_status ==1) %>% 
+  mutate(weight_lbs = wt_kgs*2.20)
+
+# makes a tsibble object with existing data. This object has ONLY Age in months, BMIz scores (at months assessed) and participant number
+ts_data <- bmi_data_input |> 
+  select(c(agemos, bmiz, adult_ht_in, participant)) |> 
+  as_tsibble(index = agemos, key = participant) |> 
+  tsibble::fill_gaps() 
+
+
+#creates fit data based on a few models
+bmiz_fit <- ts_data |> 
+  model(Mean = MEAN(bmiz), #Mean of all measurements
+        Linear = TSLM(my_scaled_logit(bmiz, lower = -2, upper = 3) ~ agemos), # A linear model which uses a scaled logit model with upper and lower bounds
+        arima = ARIMA(bmiz ~ pdq(0,1,0))) %>%  # A 'Naive' Model which uses the last observation and includes a random walk from the last obs
+  mutate(C1 = (Mean  + arima + Linear)/3) |> # Note to self - CIs on the linear model don't play well with CIs on the ARIMA and mean models given the scaled logit model. Can't figure out how to combine them with good SEs, but the trajectories themselves look plausible for this model
+  mutate(C2 = (arima + Mean)/2) |> #Combines the RW model with the Mean model, such that predictions are pulled between the mean and the
+  forecast(h = 220)  %>% #forecasts across 220 months - e.g. from three years old 
+  filter(agemos <252) #removes ages > 20, assumes 20.9 is terminal age
+```
+
+```{r}
+#| label: fig-mean
+#| fig-cap: "Example BMIz Prediction - Mean model"
+
+#Creates Graph of BMIZ forecasts for two youth in Vingette
+bmiz_fit |> 
+  filter(.model == 'Mean') |> 
+  autoplot(ts_data, level = 99) +
+  geom_point(x = ts_data$agemos, y = ts_data$bmiz) +
+  scale_x_continuous(breaks = 12*0:240, label = m2y(12*0:240)) + #Labels x scale in Years instead of months
+  xlab('Age') + 
+  ylim(c(-2, 2)) +
+  ylab('BMI Z-Score') +
+  ggtitle(str_wrap('BMIZ Forecasts for two indiviudals with varying data prior to age 13: Mean + 99% prediction interval', width = 70)) +
+  theme(legend.position = 'none')
+```
+```{r}
+#| label: fig-rw
+#| fig-cap: "Example BMIz Prediction - RW Model"
+
+#Creates Graph of BMIZ forecasts for two youth in Vingette
+bmiz_fit |> 
+  filter(.model == 'arima') |> 
+  autoplot(ts_data, level = 95) +
+  geom_point(x = ts_data$agemos, y = ts_data$bmiz) +
+  scale_x_continuous(breaks = 12*0:240, label = m2y(12*0:240)) + #Labels x scale in Years instead of months
+  xlab('Age') + 
+  ylim(c(-2, 2)) +
+  ylab('BMI Z-Score') +
+  ggtitle(str_wrap('BMIZ Forecasts for two indiviudals with varying data prior to age 13: RW + 99% prediction interval', width = 70)) +
+  theme(legend.position = 'none')
+```
+
+```{r}
+#| label: fig-rwm
+#| fig-cap: "Example BMIz Prediction - RWM Model"
+
+#Creates Graph of BMIZ forecasts for two youth in Vingette
+bmiz_fit |> 
+  filter(.model == 'C2') |> 
+  autoplot(ts_data, level = 99) +
+  geom_point(x = ts_data$agemos, y = ts_data$bmiz) +
+  scale_x_continuous(breaks = 12*0:240, label = m2y(12*0:240)) + #Labels x scale in Years instead of months
+  xlab('Age') + 
+  ylim(c(-2, 2)) +
+  ylab('BMI Z-Score') +
+  ggtitle(str_wrap('BMIZ Forecasts for two indiviudals with varying data prior to age 13: Mean + Random Walk from Most Recent Data; 99% prediction interval', width = 70)) +
+  theme(legend.position = 'none')
+```
+### Comparison with observed values
+
+The below graphs back translate these BMI-Z forecasts to actual BMI numbers over time, using the example of the RWM model with a 95% confidence interval. In @fig-bmipred we see that Participant 1 has some a datapoint at age 15.5 which falls below the predicted window.
+
+
+```{r}
+#| label: fig-bmipred
+#| fig-cap: "Example BMIz Prediction - M1 Model"
+
+
+bmiz_fit <- dplyr::left_join(bmiz_fit, adult_ht)
+
+fcast <- bmiz_fit %>% 
+  filter(.model == 'C2') |> 
+  hilo(level = c(95))  
+
+fcast <- fcast %>% 
+ mutate(bmi = bmi_lookup_cdc(age = agemos, bmiz = .mean, sex = 2)) %>% 
+ mutate(weight = solve_for_weight(bmi = bmi, height = adult_ht_in)) %>% 
+ mutate(bmiz_lower = fcast$`95%`$lower) %>% 
+ mutate(bmiz_upper = fcast$`95%`$upper) %>% 
+ mutate(weight = solve_for_weight(bmi = bmi, height = adult_ht_in)) %>% 
+ mutate(bmi_lower = bmi_lookup_cdc(age = agemos, bmiz = bmiz_lower, sex = 2)) %>% 
+ mutate(weight_lower = solve_for_weight(bmi = bmi_lower, height = adult_ht_in)) %>% 
+ mutate(bmi_upper = bmi_lookup_cdc(age = agemos, bmiz = bmiz_upper, sex = 2)) %>% 
+ mutate(weight_upper = solve_for_weight(bmi = bmi_upper, height = adult_ht_in)) 
+
+fcast_bypx <- split.data.frame(fcast, fcast$participant)
+
+x <- vector(mode = 'list', length = length(unique(bmi_data$participant)))
+i = 1
+bmi_data_bypx_2 <- split.data.frame(bmi_data_ed, bmi_data_ed$participant)
+bmi_data_bypx_1 <- split.data.frame(bmi_data_input, bmi_data_input$participant)
+
+
+while (i <= length(unique(bmi_data$participant))) {
+
+x[[i]] <- ggplot(data = fcast_bypx[[i]], mapping = aes(x = agemos, y = bmi)) +
+  geom_point(mapping = aes(agemos, bmi), data = bmi_data_bypx_1[[i]], stat = 'identity', position = 'identity') +
+  geom_point(mapping = aes(agemos, bmi), data = bmi_data_bypx_2[[i]], stat = 'identity', position = 'identity', color = 'red') +
+  stat_smooth(mapping = aes(x = agemos, y = bmi), method = lm, formula = y~x + poly(x,2) + poly(x,3), linetype = 'dotted', col = 'coral2', data = bmi_data_bypx_1[[i]], se = FALSE) + 
+  stat_smooth(mapping = aes(x = agemos, y = bmi_upper), col = 'purple', linetype = 'dashed', data = fcast_bypx[[i]],  position = 'identity' ) +
+  stat_smooth(mapping = aes(x = agemos, y = bmi_lower), col = 'purple', linetype = 'dashed', data = fcast_bypx[[i]],  position = 'identity' ) + 
+  stat_smooth(mapping = aes (x = agemos, y = bmi), data = fcast_bypx[[i]]) + 
+  scale_x_continuous(breaks = 12*0:240, label = m2y(12*0:240), limits = c(24,240)) +
+  xlab('Age') + 
+  ylim(c(10,30))+
+  ylab('BMI') 
+  i = i+1 
+}
+
+do.call(grid.arrange, c(x))
+```
+

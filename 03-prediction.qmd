@@ -1,0 +1,365 @@
+# Prediction
+
+Below we present examples of comparing expected vs. predicted BMIz values at age 13 and from ages 13-16 in the ALSPAC Cohort
+
+```{r setup, warning=FALSE, include=FALSE, results='hide'}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, out.width = '100%')
+load('data/bmi_13_14.RData')
+library(dplyr)
+library(stringr)
+library(wesanderson)
+library(ggplot2)
+```
+
+## Age 13
+
+There were `r count(bmi_13_14 |> distinct(id))[[1,1]]` individuals (`r nrow(bmi_pred_Mean.f)` females and `r nrow(bmi_pred_Mean.m)` males)  with at least one BMI measurement at age 13, including `r nrow(bmi_13_14 %>% group_by(id, agemos_asess_1) %>% distinct (id)) - count(bmi_13_14 |> distinct(id))[[1,1]]` individuals who provided two measurements during this time period. For those who provided more than one measurement, the older measurement was used. 
+
+### Percent falling below and above predicted ranges based on model at age 13
+
+```{r}
+#| label: tbl-wtstatus
+#| tbl-cap: "Weight Status Groups at Age 13 by Model"
+
+
+model_dfs <- list(bmi_pred_Mean.f, bmi_pred_RW.f, bmi_pred_M1.f, bmi_pred_Mean.m, bmi_pred_RW.m, bmi_pred_M1.m) #list models to evaluate for prediction rates
+
+model_table <- tibble(
+   model = model_dfs,
+   Sex = sapply(model_dfs, function(df) df$sex_z[[1]]),
+   Model = sapply(model_dfs, function(df) as.character(df$.model[[1]])),
+   n = as.numeric(sapply(model_dfs, function(df) nrow(df))),
+  `n below` = sapply(model_dfs, function(df) sum(df$lower_99_cutoff ==1)), 
+  `% below` = paste0(round(`n below`/n*100,2),'%'),
+  `n above` = sapply(model_dfs, function(df) sum(df$upper_99_cutoff ==1)),
+  `% above` = paste0(round(`n above`/n*100,2),'%')
+)
+
+model_table[7,] = c( list(NA),
+                     1,
+                     'AbsVal >1', 
+                     nrow(bmi_pred_Mean.m),
+                     sum(bmi_pred_Mean.m$grade_1_cutoff == 1),
+                     paste0(round(sum(bmi_pred_Mean.m$grade_1_cutoff == 1)/nrow(bmi_pred_Mean.m)*100,2),'%'), 
+                     sum(bmi_pred_Mean$overweight_cutoff == 1, na.rm = TRUE), 
+                     paste0(round(sum(bmi_pred_Mean.m$overweight_cutoff == 1, na.rm = TRUE)/nrow(bmi_pred_Mean.m)*100,2), '%')
+                     )
+
+model_table[8,] = c( list(NA),
+                     2,
+                     'AbsVal >1', 
+                     nrow(bmi_pred_Mean.f),
+                     sum(bmi_pred_Mean.f$grade_1_cutoff == 1),
+                     paste0(round(sum(bmi_pred_Mean.f$grade_1_cutoff == 1)/nrow(bmi_pred_Mean.f)*100,2),'%'), 
+                     sum(bmi_pred_Mean.f$overweight_cutoff == 1, na.rm = TRUE), 
+                     paste0(round(sum(bmi_pred_Mean.f$overweight_cutoff == 1, na.rm = TRUE)/nrow(bmi_pred_Mean.f)*100,2), '%')
+                     )
+
+model_table <- model_table |> 
+  select (-c('model', 'n')) %>% 
+  mutate (Sex = ifelse(Sex == 1, 'male', 'female')) %>% 
+  arrange(Sex) %>% 
+  mutate(Model = str_replace(Model, 'M1', 'RWM'))
+
+knitr::kable(model_table, caption = 'Rates of meeting criteria for low or high weight by model', align = rep('c', 5))
+```
+
+
+```{r}
+prop1 <- bmi_pred_Mean %>%
+    filter(!is.na(low_wt_category)) |>
+    group_by(low_wt_category, sex_z) |>
+    summarise(n = n())
+
+prop2 <- bmi_pred_Mean |>
+    filter(!is.na(low_wt_category)) |>
+    group_by(sex_z) |>
+    summarise(ntot = n())
+
+weight_status_table_low <- full_join(prop1, prop2) |>
+  mutate(percent_in_sex = round( n/ntot*100, 2)) |>
+  mutate (sex_z = recode(sex_z, '1' = 'Boys', '2' = 'Girls')) |>
+  filter(low_wt_category  != 'No Low Wt')
+
+prop1_high <- bmi_pred_Mean %>%
+    filter(!is.na(high_wt_category)) |>
+    group_by(high_wt_category, sex_z) |>
+    summarise(n = n())
+
+prop2_high <- bmi_pred_Mean |>
+    filter(!is.na(high_wt_category)) |>
+    group_by(sex_z) |>
+    summarise(ntot = n())
+
+weight_status_table_high <- full_join(prop1_high, prop2_high) |>
+  mutate(percent_in_sex = round( n/ntot*100, 2)) |>
+  mutate (sex_z = recode(sex_z, '1' = 'Boys', '2' = 'Girls')) |>
+  filter(high_wt_category  != 'No High Wt')
+```
+
+
+As seen in @tbl-wtstatus, the mean model was the most conservative, with approximately 15% of both boys and girls falling outside of the prediction window during age 13. The random walk model had the largest margin of error in prediction, with almost 50% of bmiz datapoints falling outside of the predicted window. In all models, falling below the BMIz prediction window was more likely than falling above the BMIz prediction window. In other words, when measured during this year, decreases in one's BMIz score were more common as compared to increases in one's BMIz score relative to historical BMIz, and this finding was consistent across boys and girls. 
+
+### Low and High Weight Groups based on Mean Prediction Model
+
+For the following analyses, we focus in on the Mean model (99% prediction interval) as our primary comparison group. Looking at low weight groups, the majority of individuals who fell outside of their expected window did not reach underweight status (BMIz \< -1), and the majority of those who were underweight during their 13th year did not have a major BMIz reduction (see @fig-lowt)
+
+```{r}
+#| label: fig-lowt
+#| fig-cap: "Low Weight Status Groups at Age 13"
+wp <- wes_palettes$Darjeeling2
+
+ggplot(data = weight_status_table_low,
+       aes(x = sex_z, y = percent_in_sex, fill = low_wt_category, label = percent_in_sex)) + #set the aesthetic features, including the labels at one decimal place
+    geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
+    scale_y_continuous( limits = c(0,35)) +#set the lower and upper limits of the y axis ( 0-100 percent);
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 20))+ #make legend text a bit bigger
+    labs(x = element_blank(), y = 'Percent (within gender)', title = 'Low Weight Status Groups Age 13', fontface = 'bold') +
+     geom_text(aes(label = sprintf('%0.1f%%', percent_in_sex)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 6, fontface = 'bold') +
+    theme_classic()+
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 20)) + #make legend text a bit bigger
+   scale_fill_manual(values = wp[2:4])
+
+```
+
+Regarding high weight status, @fig-hiwt shows the proportion of individuals who had an elevation of BMIz score, those who had a BMIz score of > 1 at their 13yo assessment time point, and those who had both a BMI elevation and a BMIz score of > 1. Again, the majority of individuals who had a BMIz score elevation (relative to their predicted mean BMIz value) were not overweight at the age 13 assessment point, and the majority of individuals who were overweight at the age 13 assessment point did not have a BMI elevation relative to their prior expected BMIz value.  
+
+```{r}
+#| label: fig-hiwt
+#| fig-cap: "High Weight Status Groups at Age 13"
+
+wp2 <- wes_palettes$Rushmore
+
+ggplot(data = weight_status_table_high,
+    aes(x = sex_z, y = percent_in_sex, fill = high_wt_category, label = percent_in_sex)) + #set the aesthetic features, including the labels at one decimal place
+    geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
+    scale_y_continuous( limits = c(0,40)) +#set the lower and upper limits of the y axis ( 0-100 percent);
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 16))+ #make legend text a bit bigger
+    labs(x = element_blank(), y = 'Percent (within gender)', title = 'High Weight Status Groups Age 13', fontface = 'bold') +
+     geom_text(aes(label = sprintf('%0.1f%%', percent_in_sex)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 6, fontface = 'bold') +
+    theme_classic()+
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 20)) + #make legend text a bit bigger
+   scale_fill_manual(values = wp2[2:4])
+
+ggsave('high_wt_status.png', width = 10)
+
+```
+
+Together, this initial information suggests that underweight and overweight status, which are commonly used to screen youth for intervention, are not synonymous with (and may be largely distinct from) identifying youth who have a deviation from their own historical body weight trends. 
+
+### Eating Disorder Behaviors at Age 14 across age 13 Low Weight Groups
+
+Next we combine the dataset with these new groups (whether individuals had a bmi z reduction and whether they were underweight) to examine rates of ED behaviors at age 14 across groups. 
+
+```{r}
+
+load('data/ALSPAC_cleaned.RData')
+
+compensatory_14 <- ALSPAC_cleaned$Compensatory_Behaviors %>% 
+  filter(assess_agemos == 167) %>% 
+  select(-c(assess_agemos))
+
+binge_14 <- ALSPAC_cleaned$Binge %>% 
+  filter(assess_agemos == 167) %>% 
+  filter(!is.na(binge_freq_d)) %>% 
+  select(-c(assess_agemos))
+
+exercise_14 <- ALSPAC_cleaned$Driven_Exercise %>% 
+  filter(assess_agemos == 167) %>% 
+  filter(!is.na(exercise_frq))
+
+df_14 <- left_join(bmi_pred_Mean, compensatory_14)
+df_14 <- left_join(df_14, binge_14)
+df_14 <- left_join(df_14, exercise_14)
+
+df_14 <- df_14 |>
+  mutate(sum_compensatory_any  = rowSums(across(c(purging_any, fasting_any, driven_exercise)))) |>
+  mutate(any_compensatory = case_when(sum_compensatory_any >0 ~1,
+                                      sum_compensatory_any ==0 ~0)) %>% 
+  mutate(sum_compensatory_reg  = rowSums(across(c(purging_monthly, fasting_monthly, driven_exercise)))) |>
+  mutate(reg_compensatory = case_when(sum_compensatory_reg>0 ~1,
+                                      sum_compensatory_reg==0 ~0))
+
+  
+  #sets 'no low weight' and 'no high weight' as the reference categories for their 
+df_14 <- within(df_14, low_wt_category <- relevel(low_wt_category, ref = '0.No Low Wt'))
+df_14 <- within(df_14, high_wt_category <- relevel(high_wt_category, ref = '0.No High Wt'))
+
+```
+
+```{r}
+library(haven)
+df_14_f <- df_14 |>
+  filter(sex_z==2)
+
+df_14_m <- df_14 |>
+  filter(sex_z==1)
+
+fasting_results_m <- glm(fasting_any ~ low_wt_category, data = df_14_m, family = 'binomial')
+fasting_results_f <- glm(fasting_any ~ low_wt_category, data = df_14_f, family = 'binomial')
+purging_results_m <- glm(purging_any ~ low_wt_category, data = df_14_m, family = 'binomial')
+purging_results_f<- glm(purging_any ~ low_wt_category, data = df_14_f, family = 'binomial')
+exercise_results_m <- glm(driven_exercise ~ low_wt_category, data = df_14_m, family = 'binomial')
+exercise_results_f <- glm(driven_exercise ~ low_wt_category, data = df_14_f, family = 'binomial')
+compensatory_results_f <- glm(any_compensatory ~ low_wt_category, data = df_14_f, family = 'binomial')
+compensatory_results_m <- glm(any_compensatory ~ low_wt_category, data = df_14_m, family = 'binomial')
+binge_results_f <- glm(binge_freq_d ~ high_wt_category, data = df_14_f, family = 'binomial')
+binge_results_m <- glm(binge_freq_d~ high_wt_category, data = df_14_m, family = 'binomial')
+
+```
+
+With regards to maladpative exercise, girls in the underweight group were overall less likely to engage in maladaptive exercise at age 14 as compared to those who were not underweight and without a BMIz reduction. The other groups did not differ in rates of maldaptive exercise compared to the 'No Low Weight' Group (see @tbl-exf14 and @fig-ex14 )
+
+```{r}
+#| label: tbl-exf14
+#| tbl-cap: "Age 13 weight status vs. Age 14 Maladaptive Exercise"
+
+ex_coefs_f_14 <- coef(summary(exercise_results_f)) %>% 
+  round(3)
+
+knitr::kable(ex_coefs_f_14)
+```
+
+```{r}
+#| label: fig-ex14
+#| fig-cap: "Maladpative Exercise at Age 14 based on Age 13 weight Groups"
+
+source('R/tabs-and-graphs.R')
+
+ex_table <- frq_table_by_wt_sex(df_14, driven_exercise) %>% 
+  filter(driven_exercise == 'present')
+ex_table <- ex_table |>
+  mutate (sex_z = recode(as.numeric(sex_z), `1` = 'Boys', `2` = 'Girls'))
+
+library(wesanderson)
+
+ggplot(data = ex_table,
+    aes(x = low_wt_category, y = pct, fill = low_wt_category, label = sprintf('%0.1f%%', pct*100))) + #set the aesthetic features, including the labels at one decimal place
+    geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
+    scale_y_continuous(labels = scales::percent, limits = c(0,0.1))+ #set the lower and upper limits of the y axis ( 0-100 percent);
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15))+ #make legend text a bit bigger
+    labs(x = element_blank(), y = 'Percent') +
+     geom_text(aes(label = sprintf('%0.1f%%', pct*100)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 4, fontface = 'bold') +
+    facet_wrap(~sex_z) +
+    theme_classic()+
+    theme(legend.position = 'none',, axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15)) +
+     scale_fill_manual(values = wes_palette(name = 'Darjeeling2', n = 4))
+
+
+```
+
+Regarding Purging behavior, rates were low at this age (see @fig-purge14), with low cell sizes (n < 5) in several groups at age 14, leading to low power for these comparisons. 
+
+```{r}
+#| label: fig-purge14
+#| fig-cap: "Rates of Purging at Age 14 based on Age 13 weight Groups - Female"
+
+purge_table <- frq_table_by_wt_sex(df_14, purging_any) |>
+  filter(purging_any == 'Any') %>% 
+  mutate (sex_z = recode(sex_z, `1` = 'Boys', `2` = 'Girls'))
+
+ggplot(data = purge_table,
+    aes(x = low_wt_category, y = pct, fill = low_wt_category, label = sprintf('%0.1f%%', pct*100))) + #set the aesthetic features, including the labels at one decimal place
+    geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
+    scale_y_continuous(labels = scales::percent, limits = c(0,0.1))+ #set the lower and upper limits of the y axis ( 0-100 percent);
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15))+ #make legend text a bit bigger
+    labs(x = element_blank(), y = 'Percent') +
+     geom_text(aes(label = sprintf('%0.1f%%', pct*100)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 4, fontface = 'bold') +
+    facet_wrap(~sex_z) +
+    theme_classic()+
+    theme(legend.position = 'none',, axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15)) +
+       scale_fill_manual(values = wes_palette(name = 'Darjeeling2', n = 4)) #make legend text a bit bigger
+
+
+```
+
+Fasting was a more common behavior, particularly amongst girls. Those in the underweight group reported the lowest levels of fasting, which was significantly lower than those who did not have a weight reduction and were not underweight at age 14 (@tbl-fastf14). The highest levels were amongst girls who experienced a BMIz reduction but were not underweight (@fig-fast14), though this was not significantly higher than those who did not have a weight reduction.
+
+```{r}
+#| label: tbl-fastf14
+#| tbl-cap: "Age 13 weight status vs. Age 14 Fasting - Female"
+
+fast_coefs_f_14 <- coef(summary(fasting_results_f)) %>% 
+  round(3)
+
+knitr::kable(fast_coefs_f_14)
+```
+
+```{r}
+#| label: fig-fast14
+#| fig-cap: "Age 13 weight status vs. Age 14 Fasting"
+
+
+fasting_table <- frq_table_by_wt_sex(df_14, fasting_any) |>
+  filter(fasting_any == 'Any') |>
+  mutate (sex_z = recode(sex_z, '1' = 'Boys', '2' = 'Girls'))
+
+
+ggplot(data = fasting_table,
+    aes(x = low_wt_category, y = pct, fill = low_wt_category, label = sprintf('%0.1f%%', pct*100))) + #set the aesthetic features, including the labels at one decimal place
+    geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
+    scale_y_continuous(labels = scales::percent, limits = c(0,0.2))+ #set the lower and upper limits of the y axis ( 0-100 percent);
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15))+ #make legend text a bit bigger
+    labs(x = element_blank(), y = 'Percent') +
+    geom_text(aes(label = sprintf('%0.1f%%', pct*100)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 4, fontface = 'bold') +
+    facet_wrap(~sex_z) +
+    theme_classic()+
+    theme(legend.position = 'none',, axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15)) + #make legend text a bit bigger
+  scale_fill_manual(values = wes_palette(name = 'Darjeeling2', n = 4))
+
+```
+When taken together, both girls and boys who had a BMIz reduction (but were not underweight) reported the highest frequency of compensatory behaviors relative to their peers (@fig-comp14), though these were not statistically significant differences relative to those who did not have a BMIz reduction or underweight status at age 13. Both girls and boys where were underweight where this weight was stable; however, did have a lower incidence of compensatory behaviors relative to their non-underweight peers (@tbl-compf14 and @tbl-compm14).
+
+```{r}
+#| label: tbl-compf14
+#| tbl-cap: "Age 13 weight status vs. Age 14 Compensatory Behaviors - Female"
+
+compensatory_coefs_f_14 <- coef(summary(compensatory_results_f)) %>% 
+  round(3)
+
+knitr::kable(compensatory_coefs_f_14)
+```
+
+```{r}
+#| label: tbl-compm14
+#| tbl-cap: "Age 13 weight status vs. Age 14 Compensatory Behaviors - male"
+
+compensatory_coefs_m_14 <- coef(summary(compensatory_results_m)) %>% 
+  round(3)
+
+knitr::kable(compensatory_coefs_m_14)
+```
+
+```{r}
+#| label: fig-comp14
+#| fig-cap: "Age 13 weight status vs. Age 14 Compensatory Behavior Engagement"
+
+compensatory_table <- frq_table_by_wt_sex(df_14, any_compensatory) |>
+  filter(any_compensatory == 1) |>
+  mutate (sex_z = recode(sex_z, '1' = 'Boys', '2' = 'Girls'))
+
+ggplot(data = compensatory_table,
+    aes(x = low_wt_category, y = pct, fill = low_wt_category, label = sprintf('%0.1f%%', pct*100))) + #set the aesthetic features, including the labels at one decimal place
+    geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
+    scale_y_continuous(labels = scales::percent, limits = c(0,0.25))+ #set the lower and upper limits of the y axis ( 0-100 percent);
+    theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15))+ #make legend text a bit bigger
+    labs(x = element_blank(), y = 'Percent') +
+     geom_text(aes(label = sprintf('%0.1f%%', pct*100)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 4, fontface = 'bold') +
+    facet_wrap(~sex_z) +
+    theme_classic()+
+    theme(legend.position = 'none',, axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 15)) + #make legend text a bit bigger
+       scale_fill_manual(values = wes_palette(name = 'Darjeeling2', n = 4))
+
+```
+
+### Continuous assessment of weight and weight suppression
+
+In addition to setting dichotomous groups based on BMIz changes, we can also evaluate BMIz changes continuously. That is, we can identify deviation from eBMIz or eBMI based on the point predictions of different models (Mean, Random Walk (most recent BMIz), M1, Highest Ever BMIz) and examine whether the magnitude of these deviations at age 13, along with absolute weight status (BMIz), associates with ED behaviors at age 14. 
+
+**Consider running continuous models -- which continuous models to run?**
+
+## Age 13-16
+
+As age 14 represents early onset of many ED beahviors, we replicated analyses above predicting out to age 16. For these analyses, we first defined 
+
+
