@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>forecasting</title>
+<title>ALSPAC bmi-forecasting - 3&nbsp; Forecasting BMI</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -24,11 +24,14 @@ ul.task-list li input[type="checkbox"] {
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
+<link href="./03-prediction.html" rel="next">
+<link href="./01-intro.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -61,30 +64,99 @@ ul.task-list li input[type="checkbox"] {
 
 </head>
 
-<body class="fullcontent">
+<body class="nav-sidebar floating">
 
 <div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Forecasting BMI</span></h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">ALSPAC bmi-forecasting</a> 
+    </div>
+      </div>
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-intro.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Brief Introduction to Analyses</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-forecasting.html" class="sidebar-item-text sidebar-link active"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Forecasting BMI</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-prediction.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Prediction</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#coding-and-modeling-bmiz-from-growth-charts" id="toc-coding-and-modeling-bmiz-from-growth-charts" class="nav-link active" data-scroll-target="#coding-and-modeling-bmiz-from-growth-charts"><span class="toc-section-number">3.1</span>  Coding and Modeling BMIz from Growth Charts</a>
+  <ul class="collapse">
+  <li><a href="#comparison-with-observed-values" id="toc-comparison-with-observed-values" class="nav-link" data-scroll-target="#comparison-with-observed-values"><span class="toc-section-number">3.1.1</span>  Comparison with observed values</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Forecasting BMI</span></h1>
+</div>
 
 
-<section id="forecasting-bmi" class="level1">
-<h1>Forecasting BMI</h1>
+
+<div class="quarto-title-meta">
+
+    
+    
+  </div>
+  
+
+</header>
+
 <p>There are 7453 individuals with four or more bmi measurements in the dataset between ages 2-13 years.</p>
 <p>When combining data with assessments of body weight after age 12.99, there were a total of 23385 observations of body weight from ages 13-20 in the dataset, across 6633 participants.</p>
 <p>Below is a worked example of the steps involved in developing the BMIz forecasts:</p>
-<section id="coding-and-modeling-bmiz-from-growth-charts" class="level2">
-<h2 class="anchored" data-anchor-id="coding-and-modeling-bmiz-from-growth-charts">Coding and Modeling BMIz from Growth Charts</h2>
+<section id="coding-and-modeling-bmiz-from-growth-charts" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="coding-and-modeling-bmiz-from-growth-charts"><span class="header-section-number">3.1</span> Coding and Modeling BMIz from Growth Charts</h2>
 <p>First, inputs (height and weight or raw BMI values with child age) are converted to BMIz score, which is plotted across childhood along with the mean BMIz and 95% confidence band for this mean. In the current study, we are using data from ages 2-13 years as our prediction set.</p>
 <p>After all available BMIz scores are input, prediction of future BMIz is forecast which accounts for recent measures of and variability in BMIz to forecast BMIz moving forward. Further, the overall number of observations and variance in previous BMIz to create a prediction window for future observations.</p>
 <p>Three starting models are: Mean, Random Walk, and Random Walk + Mean (RWM). In the mean model, the prediction window for BMIz score is responsive to variance of the BMIz scores in the prediction set, the predicted BMIz score is set at the mean of previous values, and the prediction interval stays constant over time. In the Random Walk model, the predicted value begins at the most recent BMIz data point (closest to age 13), and the prediction window begins very narrow, but widens over time, which accounts for increased confidence in observations that are more proximal to the last measurement. The Mean + Random Walk model combines both models, with a predicted BMIz between the mean of previous values and the most recent, and some widening of the prediction window over time. An alternative model might specify that the highest BMIz scores – regardless of age – define prediction (potentially defining a more conceptually pure value of developmental weight suppression).</p>
-<p>In the following example, Participant 1, ‘Mara’, has routine observations with BMI-Z mean of ~ -0.5 in childhood. Participant 2, ‘Shannon’ has routine observations with a BMI-Z of ~ 0.5, fewer assessment points, and slightly higher variability in BMIz. The Mean(<a href="#fig-mean">Figure&nbsp;1</a>), Random Walk(<a href="#fig-rw">Figure&nbsp;2</a>), and RWM(<a href="#fig-rwm">Figure&nbsp;3</a>) models are presented below for visualization of expected BMIz over time after age 13 for these individuals.</p>
+<p>In the following example, Participant 1, ‘Mara’, has routine observations with BMI-Z mean of ~ -0.5 in childhood. Participant 2, ‘Shannon’ has routine observations with a BMI-Z of ~ 0.5, fewer assessment points, and slightly higher variability in BMIz. The Mean(<a href="#fig-mean">Figure&nbsp;<span>3.1</span></a>), Random Walk(<a href="#fig-rw">Figure&nbsp;<span>3.2</span></a>), and RWM(<a href="#fig-rwm">Figure&nbsp;<span>3.3</span></a>) models are presented below for visualization of expected BMIz over time after age 13 for these individuals.</p>
 <div class="cell">
 
 </div>
@@ -93,7 +165,7 @@ ul.task-list li input[type="checkbox"] {
 <div id="fig-mean" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
 <p><img src="02-forecasting_files/figure-html/fig-mean-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;1: Example BMIz Prediction - Mean model</figcaption><p></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3.1: Example BMIz Prediction - Mean model</figcaption><p></p>
 </figure>
 </div>
 </div>
@@ -103,7 +175,7 @@ ul.task-list li input[type="checkbox"] {
 <div id="fig-rw" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
 <p><img src="02-forecasting_files/figure-html/fig-rw-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;2: Example BMIz Prediction - RW Model</figcaption><p></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3.2: Example BMIz Prediction - RW Model</figcaption><p></p>
 </figure>
 </div>
 </div>
@@ -113,27 +185,26 @@ ul.task-list li input[type="checkbox"] {
 <div id="fig-rwm" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
 <p><img src="02-forecasting_files/figure-html/fig-rwm-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;3: Example BMIz Prediction - RWM Model</figcaption><p></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3.3: Example BMIz Prediction - RWM Model</figcaption><p></p>
 </figure>
 </div>
 </div>
 </div>
-<section id="comparison-with-observed-values" class="level3">
-<h3 class="anchored" data-anchor-id="comparison-with-observed-values">Comparison with observed values</h3>
-<p>The below graphs back translate these BMI-Z forecasts to actual BMI numbers over time, using the example of the RWM model with a 95% confidence interval. In <a href="#fig-bmipred">Figure&nbsp;4</a> we see that Participant 1 has some a datapoint at age 15.5 which falls below the predicted window.</p>
+<section id="comparison-with-observed-values" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="comparison-with-observed-values"><span class="header-section-number">3.1.1</span> Comparison with observed values</h3>
+<p>The below graphs back translate these BMI-Z forecasts to actual BMI numbers over time, using the example of the RWM model with a 95% confidence interval. In <a href="#fig-bmipred">Figure&nbsp;<span>3.4</span></a> we see that Participant 1 has some a datapoint at age 15.5 which falls below the predicted window.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-bmipred" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
 <p><img src="02-forecasting_files/figure-html/fig-bmipred-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
-<p></p><figcaption class="figure-caption">Figure&nbsp;4: Example BMIz Prediction - M1 Model</figcaption><p></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3.4: Example BMIz Prediction - M1 Model</figcaption><p></p>
 </figure>
 </div>
 </div>
 </div>
 
 
-</section>
 </section>
 </section>
 
@@ -236,6 +307,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./01-intro.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Brief Introduction to Analyses</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./03-prediction.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Prediction</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 
