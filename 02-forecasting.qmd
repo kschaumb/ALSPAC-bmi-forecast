@@ -104,9 +104,10 @@ save(bmi_13_16, sex_vars, file = 'data/bmi_13_16.RData')
 Below is a worked example of the steps involved in developing the BMIz forecasts:
 
 ## Coding and Modeling BMIz from Growth Charts
-First, inputs (height and weight or raw BMI values with child age) are converted to BMIz score, which is plotted across childhood along with the mean BMIz and 95% confidence band for this mean. In the current study, we are using data from ages 2-13 years as our prediction set. 
 
-After all available BMIz scores are input, prediction of future BMIz is forecast which accounts for recent measures of and variability in BMIz to forecast BMIz moving forward. Further, the overall number of observations and variance in previous BMIz to create a prediction window for future observations. 
+First, inputs (height and weight or raw BMI values with child age) are converted to BMIz score, which is plotted across childhood along with the mean BMIz and 95% confidence band for this mean. In the current study, we are using data from ages 2-13 years as our prediction set.
+
+After all available BMIz scores are input, prediction of future BMIz is forecast which accounts for recent measures of and variability in BMIz to forecast BMIz moving forward. Further, the overall number of observations and variance in previous BMIz to create a prediction window for future observations.
 
 Three starting models are: Mean, Random Walk, and Random Walk + Mean (RWM). In the mean model, the prediction window for BMIz score is responsive to variance of the BMIz scores in the prediction set, the predicted BMIz score is set at the mean of previous values, and the prediction interval stays constant over time. In the Random Walk model, the predicted value begins at the most recent BMIz data point (closest to age 13), and the prediction window begins very narrow, but widens over time, which accounts for increased confidence in observations that are more proximal to the last measurement. The Mean + Random Walk model combines both models, with a predicted BMIz between the mean of previous values and the most recent, and some widening of the prediction window over time. An alternative model might specify that the highest BMIz scores -- regardless of age -- define prediction (potentially defining a more conceptually pure value of developmental weight suppression).
 
@@ -184,6 +185,7 @@ bmiz_fit |>
   ggtitle(str_wrap('BMIZ Forecasts for two indiviudals with varying data prior to age 13: Mean + 99% prediction interval', width = 70)) +
   theme(legend.position = 'none')
 ```
+
 ```{r}
 #| label: fig-rw
 #| fig-cap: "Example BMIz Prediction - RW Model"
@@ -217,10 +219,10 @@ bmiz_fit |>
   ggtitle(str_wrap('BMIZ Forecasts for two indiviudals with varying data prior to age 13: Mean + Random Walk from Most Recent Data; 99% prediction interval', width = 70)) +
   theme(legend.position = 'none')
 ```
+
 ### Comparison with observed values
 
 The below graphs back translate these BMI-Z forecasts to actual BMI numbers over time, using the example of the RWM model with a 95% confidence interval. In @fig-bmipred we see that Participant 1 has some a datapoint at age 15.5 which falls below the predicted window.
-
 
 ```{r}
 #| label: fig-bmipred
@@ -270,4 +272,3 @@ x[[i]] <- ggplot(data = fcast_bypx[[i]], mapping = aes(x = agemos, y = bmi)) +
 
 do.call(grid.arrange, c(x))
 ```
-
