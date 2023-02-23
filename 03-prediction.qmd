@@ -12,7 +12,11 @@ library(ggplot2)
 
 ## Age 13-16
 
-As age 14 represents early onset of many ED behaviors, we replicated analyses above predicting out to age 16. For these analyses, we first defined falling outside of an expected prediction interval at any time between ages 13 and 15.9 as experiencing a BMIz reduction (or gain), and having any datapoint between ages 13-16 fall within the underweight or overweight range indicate presence of underweight or overweight status. When considered across these three
+As a general investigation of how BMIz reductions in middle adolescence associate with ED behaviors, We first defined falling outside of an expected prediction interval at any time between ages 13 and 15.9 as experiencing a BMIz reduction (or gain), and having any datapoint between ages 13-16 fall within the underweight or overweight range indicate presence of underweight or overweight status. 
+
+### Percent falling below and above predicted ranges across models: 13-16
+
+Different models were more or less sensitive to BMIz changes (leading to differential classification of low or high weight based on model, see @tbl-models16). The mean model was the most conservative, with ~ 20% of males and females meeting criteria for a BMIZ reduction and <10% meeting criteria for a BMIz increase during this time. When examining the proportion of youth who had a BMIz < -1, <20% met criteria at any point during this window, with 25-30% of youth having a BMIz of > 1 at at least one assessmetn point during this period
 
 ```{r}
 #| label: tbl-models16
@@ -100,6 +104,7 @@ weight_status_table_high <- full_join(prop1_high, prop2_high) |>
   filter(high_wt_category  != 'No High Wt')
 ```
 
+### Low and High Weight Groups based on Mean Prediction Model
 
 When looking across ages 13-16, `r weight_status_table_low$percent_in_sex[1] + weight_status_table_low$percent_in_sex[5]`% of boys and `r weight_status_table_low$percent_in_sex[2] + weight_status_table_low$percent_in_sex[6]`% of girls had experienced a BMIz reduction within the 13-16 age range based on the mean model, with the majority of those who experienced a BMIz reduction not being in the normal range or above (see @fig-lowt16)
 
@@ -113,7 +118,7 @@ ggplot(data = weight_status_table_low,
     geom_bar(position = position_stack(reverse = TRUE), stat = 'identity') + #add column graph, with male and female separated
     scale_y_continuous( limits = c(0,35)) +#set the lower and upper limits of the y axis ( 0-100 percent);
     theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 20))+ #make legend text a bit bigger
-    labs(x = element_blank(), y = 'Percent (within gender)', title = 'Low Weight Status Groups Age 13', fontface = 'bold') +
+    labs(x = element_blank(), y = 'Percent (within gender)', title = 'Low Weight Status Groups: Ages 13-16', fontface = 'bold') +
      geom_text(aes(label = sprintf('%0.1f%%', percent_in_sex)), position = position_stack(reverse = TRUE, vjust = 0.5), color = 'white', size = 6, fontface = 'bold') +
     theme_classic()+
     theme(legend.title = element_blank(), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), text = element_text(size = 20)) + #make legend text a bit bigger
@@ -141,6 +146,9 @@ compensatory_results_m <- glm(reg_compensatory ~ low_wt_category, data = df_16_m
 
 ```
 
+### Eating Disorder Behaviors across Age 13-16 Low Weight Groups
+
+Girls who had a BMIz reduction relative to their mean prior to age 13 had the highest rates of maladaptive exercise, followed by those with no underweight status and no weight change. Those who were underweight (but without a significant weight reduction) demonstrated the lowest rates of Maladaptive exercise endorsement across ages 14-16, which was significantly lower than the reference group of those who were not underweight and with no weight change (see @tbl-exf16 and @fig-ex16)
 
 ```{r}
 #| label: tbl-exf16
@@ -179,8 +187,9 @@ ggplot(data = ex_table,
 
 ```
 
-Regarding Purging behavior, rates were low at this age (see @fig-purge16), with low cell sizes (n \< 5) in several groups at age 16, leading to low power for these comparisons.
+Regarding Purging behavior, Girls with BMIz reductions from their mean before age 13 (but not reaching underweight status) were again the group of girls with the hgihest percentage endorsement of any purging behaviors (vomitting or laxative use) across ages 14-16.  
 
+ 
 ```{r}
 #| label: fig-purge16
 #| fig-cap: "Rates of Purging at Age 16 based on Age 13 weight Groups - Female"
@@ -204,7 +213,7 @@ ggplot(data = purge_table,
 
 ```
 
-Fasting was a more common behavior, particularly amongst girls. Those in the underweight group reported the lowest levels of fasting, which was significantly lower than those who did not have a weight reduction and were not underweight at age 16 (@tbl-fastf16). The highest levels were amongst girls who experienced a BMIz reduction but were not underweight (@fig-fast16), though this was not significantly higher than those who did not have a weight reduction.
+With regards to fasting, both boys and girls who had a BMIz reduction from their BMIz mean before age 13 were most likely to endorse fasting compared to other groups (@fig-fast16). For girls, this was a significantly higher level of endorsement compared with the reference group of girls  who were not underweight between agaes 13-16 and had no weight changes. Those in the underweight group reported the lowest levels of fasting, which was significantly lower than the reference group (@tbl-fastf16). 
 
 ```{r}
 #| label: tbl-fastf16
@@ -240,7 +249,7 @@ ggplot(data = fasting_table,
 
 ```
 
-When taken together, both girls and boys who had a BMIz reduction (but were not underweight) reported the highest frequency of compensatory behaviors relative to their peers (@fig-comp16), though these were not statistically significant differences relative to those who did not have a BMIz reduction or underweight status at age 13. Both girls and boys where were underweight where this weight was stable; however, did have a lower incidence of compensatory behaviors relative to their non-underweight peers (@tbl-compf16 and @tbl-compm16).
+When taken together, both girls and boys who had a BMIz reduction (but were not underweight) reported the highest frequency of regular compensatory behaviors (monthly purging or fasting or frequent maladaptive exercise) relative to their peers (@fig-comp16). Both girls and boys where were underweight where this weight was stable had a lower incidence of compensatory behaviors relative to their non-underweight peers (@tbl-compf16 and @tbl-compm16).
 
 ```{r}
 #| label: tbl-compf16
@@ -285,6 +294,8 @@ ggplot(data = compensatory_table,
 ```
 
 ## Age 13
+
+As the age 13-16 findings take all datapoints across this age range into account when identifying BMIz reductions, underweight status, and ED behaviors, this provides preliminary insights regarding associations; however, we can also evaluate associations with more precision across time by investigating changes in BMIz and ED behaviors that occur before or after one another. Beginning with age 13-13:99 BMIz reductions (relative to mean BMIz before age 13,), we examine below how these changes associate with Age 14 eating disorder behaviors. 
 
 ```{r}
 rm(list = ls())
