@@ -1,6 +1,6 @@
 # Prediction
 
-Below we present examples of comparing expected vs. predicted BMIz values at ages  from ages 13-16 in the ALSPAC Cohort
+Below we present examples of comparing expected vs. predicted BMIz values at ages from ages 13-16 in the ALSPAC Cohort
 
 ```{r setup, warning=FALSE, include=FALSE, results='hide'}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, out.width = '100%')
@@ -12,11 +12,11 @@ library(ggplot2)
 
 ## Age 13-16
 
-As a general investigation of how BMIz reductions in middle adolescence associate with ED behaviors, We first defined falling outside of an expected prediction interval at any time between ages 13 and 15.9 as experiencing a BMIz reduction (or gain), and having any datapoint between ages 13-16 fall within the underweight or overweight range indicate presence of underweight or overweight status. 
+As a general investigation of how BMIz reductions in middle adolescence associate with ED behaviors, We first defined falling outside of an expected prediction interval at any time between ages 13 and 15.9 as experiencing a BMIz reduction (or gain), and having any datapoint between ages 13-16 fall within the underweight or overweight range indicate presence of underweight or overweight status.
 
 ### Percent falling below and above predicted ranges across models: 13-16
 
-Different models were more or less sensitive to BMIz changes (leading to differential classification of low or high weight based on model, see @tbl-models16). The mean model was the most conservative, with ~ 20% of males and females meeting criteria for a BMIZ reduction and <10% meeting criteria for a BMIz increase during this time. When examining the proportion of youth who had a BMIz < -1, <20% met criteria at any point during this window, with 25-30% of youth having a BMIz of > 1 at at least one assessmetn point during this period
+Different models were more or less sensitive to BMIz changes (leading to differential classification of low or high weight based on model, see @tbl-models16). The mean model was the most conservative, with \~ 20% of males and females meeting criteria for a BMIZ reduction and \<10% meeting criteria for a BMIz increase during this time. When examining the proportion of youth who had a BMIz \< -1, \<20% met criteria at any point during this window, with 25-30% of youth having a BMIz of \> 1 at at least one assessmetn point during this period
 
 ```{r}
 #| label: tbl-models16
@@ -70,7 +70,6 @@ model_table <- model_table |>
 
 knitr::kable(model_table, caption = 'Rates of meeting criteria for low or high weight by model', align = rep('c', 5))
 ```
-
 
 ```{r}
 prop1 <- bmi_pred_Mean %>%
@@ -160,7 +159,6 @@ ex_coefs_f_16 <- coef(summary(exercise_results_f)) %>%
 knitr::kable(ex_coefs_f_16)
 ```
 
-
 ```{r}
 #| label: fig-ex16
 #| fig-cap: "Maladpative Exercise at Age 16 based on Age 13-16 weight Groups"
@@ -187,9 +185,8 @@ ggplot(data = ex_table,
 
 ```
 
-Regarding Purging behavior, Girls with BMIz reductions from their mean before age 13 (but not reaching underweight status) were again the group of girls with the hgihest percentage endorsement of any purging behaviors (vomitting or laxative use) across ages 14-16.  
+Regarding Purging behavior, Girls with BMIz reductions from their mean before age 13 (but not reaching underweight status) were again the group of girls with the hgihest percentage endorsement of any purging behaviors (vomitting or laxative use) across ages 14-16.
 
- 
 ```{r}
 #| label: fig-purge16
 #| fig-cap: "Rates of Purging at Age 16 based on Age 13 weight Groups - Female"
@@ -213,7 +210,7 @@ ggplot(data = purge_table,
 
 ```
 
-With regards to fasting, both boys and girls who had a BMIz reduction from their BMIz mean before age 13 were most likely to endorse fasting compared to other groups (@fig-fast16). For girls, this was a significantly higher level of endorsement compared with the reference group of girls  who were not underweight between agaes 13-16 and had no weight changes. Those in the underweight group reported the lowest levels of fasting, which was significantly lower than the reference group (@tbl-fastf16). 
+With regards to fasting, both boys and girls who had a BMIz reduction from their BMIz mean before age 13 were most likely to endorse fasting compared to other groups (@fig-fast16). For girls, this was a significantly higher level of endorsement compared with the reference group of girls who were not underweight between agaes 13-16 and had no weight changes. Those in the underweight group reported the lowest levels of fasting, which was significantly lower than the reference group (@tbl-fastf16).
 
 ```{r}
 #| label: tbl-fastf16
@@ -295,7 +292,7 @@ ggplot(data = compensatory_table,
 
 ## Age 13
 
-As the age 13-16 findings take all datapoints across this age range into account when identifying BMIz reductions, underweight status, and ED behaviors, this provides preliminary insights regarding associations; however, we can also evaluate associations with more precision across time by investigating changes in BMIz and ED behaviors that occur before or after one another. Beginning with age 13-13:99 BMIz reductions (relative to mean BMIz before age 13,), we examine below how these changes associate with Age 14 eating disorder behaviors. 
+As the age 13-16 findings take all datapoints across this age range into account when identifying BMIz reductions, underweight status, and ED behaviors, this provides preliminary insights regarding associations; however, we can also evaluate associations with more precision across time by investigating changes in BMIz and ED behaviors that occur before or after one another. Beginning with age 13-13:99 BMIz reductions (relative to mean BMIz before age 13,), we examine below how these changes associate with Age 14 eating disorder behaviors.
 
 ```{r}
 rm(list = ls())
@@ -303,7 +300,6 @@ load('data/ALSPAC_cleaned.RData')
 load('data/bmi_13_14.RData')
 
 ```
-
 
 There were `r count(bmi_13_14 |> distinct(id))[[1,1]]` individuals (`r nrow(bmi_pred_Mean.f)` females and `r nrow(bmi_pred_Mean.m)` males) with at least one BMI measurement at age 13, including `r nrow(bmi_13_14 %>% group_by(id, agemos_asess_1) %>% distinct (id)) - count(bmi_13_14 |> distinct(id))[[1,1]]` individuals who provided two measurements during this time period. For those who provided more than one measurement, the older measurement was used.
 
@@ -650,11 +646,8 @@ In addition to setting dichotomous groups based on BMIz changes, we can also eva
 
 ## Age 14-16
 
-** Would love to talk about setting up this analysis in Meeting on 3/2 -- was straightforward for 13-14 since it was the 'baseline'. Some Qs:
+\*\* Would love to talk about setting up this analysis in Meeting on 3/2 -- was straightforward for 13-14 since it was the 'baseline'. Some Qs:
 
 -Do we continue with using predictive models from age 2-12.99? Do we add in any age 13 BMI data to prediction side of the models?
 
-- For temporal precedence, do we exclude those who had onset of a certain behavior at age 14 when looking at BMIz drops from age 14-16 and whether they predict engagement in behaviors at age 16? Could also look at it both ways (whether those who report engagement of compensatory behaviors at age 14 are likely to have BMI changes - up or down -- from 14-16, along with whether bmi changes from age 14-16 are associated with onset (or onset + continuation of) ED behaviors at age 16.
-
-
-
+-   For temporal precedence, do we exclude those who had onset of a certain behavior at age 14 when looking at BMIz drops from age 14-16 and whether they predict engagement in behaviors at age 16? Could also look at it both ways (whether those who report engagement of compensatory behaviors at age 14 are likely to have BMI changes - up or down -- from 14-16, along with whether bmi changes from age 14-16 are associated with onset (or onset + continuation of) ED behaviors at age 16.

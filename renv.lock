@@ -9,6 +9,17 @@
     ]
   },
   "Packages": {
+    "AGD": {
+      "Package": "AGD",
+      "Version": "0.39",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "075d450b55dd8995e699a9d4636e9858",
+      "Requirements": [
+        "gamlss",
+        "gamlss.dist"
+      ]
+    },
     "BH": {
       "Package": "BH",
       "Version": "1.81.0-1",
@@ -354,6 +365,38 @@
       "Repository": "CRAN",
       "Hash": "f4dcd23b67e33d851d2079f703e8b985",
       "Requirements": []
+    },
+    "gamlss": {
+      "Package": "gamlss",
+      "Version": "5.4-12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c16e035b4e62de95402bc9df13660c12",
+      "Requirements": [
+        "MASS",
+        "gamlss.data",
+        "gamlss.dist",
+        "nlme",
+        "survival"
+      ]
+    },
+    "gamlss.data": {
+      "Package": "gamlss.data",
+      "Version": "6.0-2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5657057e89088a77474f6380bcb2e20d",
+      "Requirements": []
+    },
+    "gamlss.dist": {
+      "Package": "gamlss.dist",
+      "Version": "6.0-5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "6978133d12632438516a2abd95a3f630",
+      "Requirements": [
+        "MASS"
+      ]
     },
     "generics": {
       "Package": "generics",
@@ -922,6 +965,16 @@
         "vctrs"
       ]
     },
+    "survival": {
+      "Package": "survival",
+      "Version": "3.5-5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "d683341b1fa2e8d817efde27d6e6d35b",
+      "Requirements": [
+        "Matrix"
+      ]
+    },
     "tibble": {
       "Package": "tibble",
       "Version": "3.1.8",
@@ -1093,10 +1146,10 @@
     },
     "xfun": {
       "Package": "xfun",
-      "Version": "0.37",
+      "Version": "0.38",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "a6860e1400a8fd1ddb6d9b4230cc34ab",
+      "Hash": "1ed71215d45e85562d3b1b29a068ccec",
       "Requirements": []
     },
     "xtable": {
