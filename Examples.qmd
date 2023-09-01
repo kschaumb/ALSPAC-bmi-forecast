@@ -1,0 +1,168 @@
+---
+title: "Examples"
+---
+
+```{r, setup, include = 'false', results = 'hide'}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, out.width = '100%')
+library(fable)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(gridExtra)
+library(haven)
+library(zscorer)
+library(psych)
+library(AGD)
+library(readxl)
+source('R/bmiz_to_bmi.R')
+source('R/solve_for_wt.R')
+source('R/logit_transform.R')
+source('R/add_bmi_vars.R')
+```
+
+Below is a worked example of the steps involved in developing the BMIz forecasts:
+
+## Coding and Modeling BMIz from Growth Charts
+
+First, inputs (height and weight or raw BMI values with child age) are converted to BMIz score, which is plotted across childhood along with the mean BMIz and 95% confidence band for this mean. In the current study, we are using data from ages 2-13 years as our prediction set.
+
+After all available BMIz scores are input, prediction of future BMIz is forecast which accounts for recent measures of and variability in BMIz to forecast BMIz moving forward. Further, the overall number of observations and variance in previous BMIz to create a prediction window for future observations.
+
+Three starting models are: Mean, Random Walk, and Random Walk + Mean (RWM). In the mean model, the prediction window for BMIz score is responsive to variance of the BMIz scores in the prediction set, the predicted BMIz score is set at the mean of previous values, and the prediction interval stays constant over time. In the Random Walk model, the predicted value begins at the most recent BMIz data point (closest to age 13), and the prediction window begins very narrow, but widens over time, which accounts for increased confidence in observations that are more proximal to the last measurement. The Mean + Random Walk model combines both models, with a predicted BMIz between the mean of previous values and the most recent, and some widening of the prediction window over time. An alternative model might specify that the highest BMIz scores -- regardless of age -- define prediction (potentially defining a more conceptually pure value of developmental weight suppression).
+
+In the following example, Participant 1, 'Mara', has routine observations with BMI-Z mean of \~ -0.5 in childhood. Participant 2, 'Shannon' has routine observations with a BMI-Z of \~ 0.5, fewer assessment points, and slightly higher variability in BMIz. The Mean(@fig-mean), Random Walk(@fig-rw), and RWM(@fig-rwm) models are presented below for visualization of expected BMIz over time after age 13 for these individuals.
+
+```{r}
+bmi_data <- readxl::read_excel('data/clinic_test_data.xlsx') 
+
+adult_ht <- bmi_data %>% 
+  select(participant, adult_ht_in) %>% 
+  unique()
+
+## Clean data with needed info
+bmi_data <- bmi_data |> 
+    mutate(age = round(age_days/364.25,1)) %>% 
+    mutate(agemos = round(age *12, 0)) |> 
+    mutate(bmiz = AGD::y2z(sex = 'F', y = bmi, x = age, ref = cdc.bmi)) 
+
+#Create table with median BMI by age
+agemos = c(24:192)
+zbmi_by_age <- tibble(agemos) |> 
+  mutate(median_bmi = bmi_lookup_cdc(2, agemos, 0)) %>% 
+  mutate(uw_bmi = bmi_lookup_cdc(2, agemos, -1)) %>% 
+  mutate(ow_bmi = bmi_lookup_cdc(2, agemos, 1))
+zbmi_by_age$`Participant 1` <- 'Participant 1'
+zbmi_by_age$`Participant 2` <- 'Participant 2'
+
+zbmi_by_age <- tidyr::pivot_longer(zbmi_by_age, c('Participant 1','Participant 2'), names_to = 'participant') %>% 
+  select(-c(value)) 
+
+zbmi_by_age <- dplyr::left_join(zbmi_by_age, adult_ht)
+
+
+bmi_data <- full_join(bmi_data, zbmi_by_age) %>% 
+  mutate(median_wt = if_else(agemos > 13*12, solve_for_weight(median_bmi, adult_ht_in), NaN)) |> 
+  mutate(AN_cutoff = median_wt*0.85)
+
+bmi_data_input <- bmi_data %>% 
+  filter(ed_status ==0)
+
+
+bmi_data_13_plus <- bmi_data %>% 
+  filter(ed_status ==1) %>% 
+  mutate(weight_lbs = wt_kgs*2.20)
+
+# makes a tsibble object with existing data. This object has ONLY Age in months, BMIz scores (at months assessed) and participant number
+ts_data <- bmi_data_input |> 
+  select(c(agemos, bmiz, adult_ht_in, participant)) |> 
+  as_tsibble(index = agemos, key = participant) |> 
+  tsibble::fill_gaps() 
+
+
+#creates fit data based on a few models
+bmiz_fit <- ts_data |> 
+  model(Mean = MEAN(bmiz), #Mean of all measurements
+        Linear = TSLM(my_scaled_logit(bmiz, lower = -2, upper = 3) ~ agemos), # A linear model which uses a scaled logit model with upper and lower bounds
+        arima = ARIMA(bmiz ~ pdq(0,1,0))) %>%  # A 'Naive' Model which uses the last observation and includes a random walk from the last obs
+  mutate(C1 = (Mean  + arima + Linear)/3) |> # Note to self - CIs on the linear model don't play well with CIs on the ARIMA and mean models given the scaled logit model. Can't figure out how to combine them with good SEs, but the trajectories themselves look plausible for this model
+  mutate(C2 = (arima + Mean)/2) |> #Combines the RW model with the Mean model, such that predictions are pulled between the mean and the
+  forecast(h = 100)  %>% #forecasts across 220 months - e.g. from three years old 
+  filter(agemos < 192) #removes ages > 16
+```
+
+```{r, warning = FALSE}
+#| label: fig-mean
+#| fig-cap: "Example BMIz Prediction - Mean model"
+
+#Creates Graph of BMIZ forecasts for two youth in Vingette
+bmiz_fit |> 
+  filter(.model == 'Mean') |> 
+  autoplot(ts_data, level = 99) +
+  geom_point(x = ts_data$agemos, y = ts_data$bmiz) +
+  scale_x_continuous(breaks = 12*0:192, label = m2y(12*0:192)) + #Labels x scale in Years instead of months
+  xlab('Age') + 
+  ylim(c(-2, 2)) +
+  ylab('BMI Z-Score') +
+  geom_hline(yintercept = 1, colour = 'darkgreen', linetype = 'dotted', size = 1) +
+  geom_hline(yintercept = 0, colour = 'orange', linetype = 'dotted', size = 1) +
+  geom_hline(yintercept = -1, colour = 'blue', linetype = 'dotted' , size = 1) +
+  theme(legend.position = 'none')
+```
+
+### Comparison with observed values
+
+The below graphs back translate these BMI-Z forecasts to actual BMI numbers over time, using the example of the RWM model with a 95% confidence interval. In @fig-bmipred we see that Participant 1 has some a datapoint at age 15.5 which falls below the predicted window.
+
+```{r}
+#| label: fig-bmipred
+#| fig-cap: "Figure 2: Example BMIz Prediction"
+
+
+bmiz_fit <- dplyr::left_join(bmiz_fit, adult_ht)
+
+fcast <- bmiz_fit %>% 
+  filter(.model == 'Mean') |> 
+  hilo(level = c(99))  
+
+fcast <- fcast %>% 
+ mutate(bmi = bmi_lookup_cdc(age = agemos, bmiz = .mean, sex = 2)) %>% 
+ mutate(weight = solve_for_weight(bmi = bmi, height = adult_ht_in)) %>% 
+ mutate(bmiz_lower = fcast$`99%`$lower) %>% 
+ mutate(bmiz_upper = fcast$`99%`$upper) %>% 
+ mutate(weight = solve_for_weight(bmi = bmi, height = adult_ht_in)) %>% 
+ mutate(bmi_lower = bmi_lookup_cdc(age = agemos, bmiz = bmiz_lower, sex = 2)) %>% 
+ mutate(weight_lower = solve_for_weight(bmi = bmi_lower, height = adult_ht_in)) %>% 
+ mutate(bmi_upper = bmi_lookup_cdc(age = agemos, bmiz = bmiz_upper, sex = 2)) %>% 
+ mutate(weight_upper = solve_for_weight(bmi = bmi_upper, height = adult_ht_in)) %>% 
+ filter(agemos>159)
+
+fcast_bypx <- split.data.frame(fcast, fcast$participant)
+
+x <- vector(mode = 'list', length = length(unique(bmi_data$participant)))
+i = 1
+bmi_data_bypx_2 <- split.data.frame(bmi_data_13_plus, bmi_data_13_plus$participant)
+bmi_data_bypx_1 <- split.data.frame(bmi_data_input, bmi_data_input$participant)
+
+bmi_data_by_px_all <- split.data.frame(bmi_data, bmi_data$participant)
+
+
+while (i <= length(unique(bmi_data$participant))) {
+
+x[[i]] <- ggplot(data = fcast_bypx[[i]], mapping = aes(x = agemos, y = bmi)) +
+  geom_point(mapping = aes(agemos, bmi), data = bmi_data_bypx_1[[i]], stat = 'identity', position = 'identity') +
+  geom_point(mapping = aes(agemos, bmi), data = bmi_data_bypx_2[[i]], stat = 'identity', position = 'identity', color = 'red') +
+  stat_smooth(mapping = aes(x = agemos, y = bmi_upper), col = 'purple', linetype = 'dashed', data = fcast_bypx[[i]],  position = 'identity' ) +
+  stat_smooth(mapping = aes(x = agemos, y = bmi_lower), col = 'purple', linetype = 'dashed', data = fcast_bypx[[i]],  position = 'identity' ) + 
+  stat_smooth(mapping = aes(x = agemos, y = median_bmi), col = 'orange', linetype = 'dotted', data = bmi_data_by_px_all[[i]], position = 'identity')+
+  stat_smooth(mapping = aes(x = agemos, y = ow_bmi), col = 'darkgreen', linetype = 'dotted', data = bmi_data_by_px_all[[i]], position = 'identity')+
+  stat_smooth(mapping = aes(x = agemos, y = uw_bmi), col = 'blue', linetype = 'dotted', data = bmi_data_by_px_all[[i]], position = 'identity') +
+  scale_x_continuous(breaks = 12*0:192, label = m2y(12*0:192), limits = c(24,192)) +
+  geom_vline(xintercept = 12*13, colour = 'black', linetype = 'dotted') +
+  xlab('Age') + 
+  ylim(c(10,30))+
+  ylab('BMI') +
+  i = i+1 
+}
+
+grid.arrange (x[[1]], x[[2]], ncol = 2)
+```

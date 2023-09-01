@@ -1,0 +1,352 @@
+---
+title: "Power Analysis Parameters"
+---
+
+```{r, echo=FALSE, message=FALSE}
+library(dplyr)
+library(haven)
+library(sjmisc)
+load('data/ALSPAC_Cleaned.RData') 
+load('data/BMIz_13_plus.RData')
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+@tbl-rates presents frequency of Binge Eating, Compensatory Behaviors, and Dieting in ALSPAC across Age and Sex
+
+```{r}
+
+
+Binge_counts <- ALSPAC_cleaned$Binge %>% 
+  select(sex, assess_agemos, binge_monthly) %>% 
+  filter(! is.na(binge_monthly)) %>% 
+  arrange(assess_agemos) %>% 
+  group_by(sex, assess_agemos, binge_monthly) %>% 
+  summarise(count = n())
+
+Binge_counts$sex <- ifelse(Binge_counts$sex == 0, "male", "female")
+
+Binge_counts <- Binge_counts %>% 
+  mutate(Age = round(as.numeric(assess_agemos)/12, 0)) %>% 
+  filter (!is.na(sex)) %>% 
+  group_by(sex, Age) %>% 
+  mutate(percentage = 100 * count[binge_monthly == 1]/sum(count)) %>% 
+  mutate(N = sum(count)) %>% 
+  filter(binge_monthly == 1) %>% 
+  mutate(`% Binge Eating` = round(percentage, 2)) %>% 
+  select(sex, N, Age, `% Binge Eating`)  
+
+```
+
+```{r}
+
+Binge_any <- ALSPAC_cleaned$Binge %>% 
+  mutate(binge_any = case_when(binge_freq >= 1 ~1,
+                               binge_freq == 0 ~ 0))
+
+Binge_any <- Binge_any %>% 
+  select(sex, assess_agemos, binge_any) %>% 
+  filter(! is.na(binge_any)) %>% 
+  arrange(assess_agemos) %>% 
+  group_by(sex, assess_agemos, binge_any) %>% 
+  summarise(count = n())
+
+Binge_any$sex <- ifelse(Binge_any$sex == 0, "male", "female")
+
+Binge_any <- Binge_any %>% 
+  mutate(Age = round(as.numeric(assess_agemos)/12, 0)) %>% 
+  filter (!is.na(sex)) %>% 
+  group_by(sex, Age) %>% 
+  mutate(percentage = 100 * count[binge_any == 1]/sum(count)) %>% 
+  mutate(N = sum(count)) %>% 
+  filter(binge_any == 1) %>% 
+  mutate(`% Binge Eating` = round(percentage, 2)) %>% 
+  select(sex, N, Age, `% Binge Eating`)  
+
+```
+
+```{r}
+
+Comp_beh <- full_join(ALSPAC_cleaned$Compensatory_Behaviors, ALSPAC_cleaned$Driven_Exercise)
+Comp_beh <- full_join(Comp_beh, ALSPAC_cleaned$Demographics)
+
+Comp_beh <- Comp_beh %>% 
+  mutate(sum_compensatory_reg  = rowSums(across(c(purging_monthly, fasting_monthly, maladaptive_exercise_2)))) |>
+  mutate(reg_compensatory = case_when(sum_compensatory_reg>0 ~1,
+                                      sum_compensatory_reg==0 ~0))
+save(Comp_beh, file = 'data/compensatory.RData')
+
+Comp_counts <- Comp_beh %>%
+  select(sex, assess_agemos, reg_compensatory) %>% 
+  filter(! is.na(reg_compensatory)) %>% 
+  arrange(assess_agemos) %>% 
+  group_by(sex, assess_agemos, reg_compensatory) %>% 
+  summarise(count = n())
+
+Comp_counts$sex <- ifelse(Comp_counts$sex == 0, "male", "female")
+
+Comp_counts <- Comp_counts %>% 
+  mutate(Age = round(as.numeric(assess_agemos)/12, 0)) %>% 
+  filter (!is.na(sex)) %>% 
+  group_by(sex, Age) %>% 
+  mutate(percentage = 100 * count[reg_compensatory== 1]/sum(count)) %>% 
+  mutate(N = sum(count)) %>% 
+  filter(reg_compensatory == 1) %>% 
+  mutate(`% Compensatory Behaviors` = round(percentage, 2)) %>% 
+  select(sex, Age, `% Compensatory Behaviors`)  
+```
+
+```{r}
+Comp_beh <- full_join(ALSPAC_cleaned$Compensatory_Behaviors, ALSPAC_cleaned$Driven_Exercise)
+Comp_beh <- full_join(Comp_beh, ALSPAC_cleaned$Demographics)
+
+Comp_beh <- Comp_beh %>% 
+  mutate(sum_compensatory_reg  = rowSums(across(c(purging_monthly, fasting_monthly, maladaptive_exercise_2)))) |>
+  mutate(reg_compensatory = case_when(sum_compensatory_reg>0 ~1,
+                                      sum_compensatory_reg==0 ~0))
+save(Comp_beh, file = 'data/compensatory.RData')
+
+Comp_counts <- Comp_beh %>%
+  select(sex, assess_agemos, reg_compensatory) %>% 
+  filter(! is.na(reg_compensatory)) %>% 
+  arrange(assess_agemos) %>% 
+  group_by(sex, assess_agemos, reg_compensatory) %>% 
+  summarise(count = n())
+
+Comp_counts$sex <- ifelse(Comp_counts$sex == 0, "male", "female")
+
+Comp_counts <- Comp_counts %>% 
+  mutate(Age = round(as.numeric(assess_agemos)/12, 0)) %>% 
+  filter (!is.na(sex)) %>% 
+  group_by(sex, Age) %>% 
+  mutate(percentage = 100 * count[reg_compensatory== 1]/sum(count)) %>% 
+  mutate(N = sum(count)) %>% 
+  filter(reg_compensatory == 1) %>% 
+  mutate(`% Compensatory Behaviors` = round(percentage, 2)) %>% 
+  select(sex, Age, `% Compensatory Behaviors`)  
+```
+
+```{r}
+Comp_beh <- full_join(ALSPAC_cleaned$Compensatory_Behaviors, ALSPAC_cleaned$Driven_Exercise)
+Comp_beh <- full_join(Comp_beh, ALSPAC_cleaned$Demographics)
+
+Comp_beh_any <- Comp_beh %>% 
+  mutate(sum_compensatory_any  = rowSums(across(c(purging_any, fasting_any, maladaptive_exercise)))) |>
+  mutate(any_compensatory = case_when(sum_compensatory_any>0 ~1,
+                                      sum_compensatory_any==0 ~0))
+
+save(Comp_beh_any, file = 'data/compensatory.RData')
+
+Comp_counts <- Comp_beh_any %>%
+  select(sex, assess_agemos, any_compensatory) %>% 
+  filter(! is.na(any_compensatory)) %>% 
+  arrange(assess_agemos) %>% 
+  group_by(sex, assess_agemos, any_compensatory) %>% 
+  summarise(count = n())
+
+Comp_counts$sex <- ifelse(Comp_counts$sex == 0, "male", "female")
+
+Comp_counts <- Comp_counts %>% 
+  mutate(Age = round(as.numeric(assess_agemos)/12, 0)) %>% 
+  filter (!is.na(sex)) %>% 
+  group_by(sex, Age) %>% 
+  mutate(percentage = 100 * count[any_compensatory== 1]/sum(count)) %>% 
+  mutate(N = sum(count)) %>% 
+  filter(any_compensatory == 1) %>% 
+  mutate(`% Compensatory Behaviors` = round(percentage, 2)) %>% 
+  select(sex, Age, `% Compensatory Behaviors`) 
+```
+
+```{r}
+#| label: tbl-rates
+#| tbl-cap: Rates of ED beahviors across age and gender in ALSPAC
+dieting <- ALSPAC_cleaned$ED_cognitions |> 
+  select(id, sex, assess_agemos, diet_freq , diet_length, diet_wt_loss) |> 
+  filter(!is.na(diet_freq)) |> 
+  mutate(diet_freq_recode = case_when (diet_freq > 0 ~ 1, 
+                                       diet_freq ==0 ~ 0))
+
+diet_counts <- dieting %>%
+  select(sex, assess_agemos, diet_freq_recode) %>% 
+  filter(! is.na(diet_freq_recode)) %>% 
+  arrange(assess_agemos) %>% 
+  group_by(sex, assess_agemos, diet_freq_recode) %>% 
+  summarise(count = n())
+
+diet_counts$sex <- ifelse(diet_counts$sex == 0, "male", "female")
+
+diet_counts <- diet_counts %>% 
+  mutate(Age = round(as.numeric(assess_agemos)/12, 0)) %>% 
+  filter (!is.na(sex)) %>% 
+  group_by(sex, Age) %>% 
+  mutate(percentage = 100 * count[diet_freq_recode== 1]/sum(count)) %>% 
+  mutate(N = sum(count)) %>% 
+  filter(diet_freq_recode == 1) %>% 
+  mutate(`% Dieting` = round(percentage, 2)) %>% 
+  select(sex, Age, `% Dieting`)  
+
+d1 <- full_join(Comp_counts, Binge_counts)
+d2 <- full_join(d1, diet_counts) |> 
+  relocate(N, .before = `% Compensatory Behaviors`)
+
+knitr::kable(d2)
+
+```
+
+@tbl-BMIz presents associations (odds ratios, estiamted from logistic regression with BMIz as single predictor) between BMIz at age 10 and Binge Eating, Compensatory Behaviors, and Dieting at age 16 in ALSPAC across Sex.
+
+```{r}
+#| label: tbl-BMIz
+#| tbl-cap: Odds Ratios - Age 10 BMIz predicting ED behavior outcomes
+
+rm(list = ls())
+library(tidyr)
+library(purrr)
+load('data/ALSPAC_long.RData')
+load('data/ALSPAC_cleaned.RData')
+BMI_age10 <- ALSPAC_cleaned$BMI |> 
+  filter (assess_agemos == 120) |> 
+  select(id, sex, bmiz_bestavail) |> 
+  filter (!is.na(bmiz_bestavail)) 
+
+BMI_age10 <- rename(BMI_age10, bmiz_Age10 = bmiz_bestavail)
+save(BMI_age10, file = 'data/BMI_10.RData')
+
+longdata <- full_join(BMI_age10, ALSPAC_long) |> 
+  mutate(sum_compensatory_reg  = rowSums(across(c(purging_monthly, fasting_monthly, maladaptive_exercise_2)))) |>
+  mutate(reg_compensatory = case_when(sum_compensatory_reg>0 ~1,
+                                      sum_compensatory_reg==0 ~0)) |> 
+  mutate(diet_freq_recode = case_when (diet_freq > 1 ~ 1, 
+                                       diet_freq <=1 ~ 0))
+
+longdata_girls <- longdata %>% 
+  filter(sex == 1) 
+
+
+longdata_boys <- longdata %>% 
+  filter(sex == 0) 
+
+library(broom)
+# Fit the models
+models <- list(
+
+Binge_logit_girls <- glm(binge_monthly ~ bmiz_Age10, data = longdata_girls, family = "binomial"),
+Comp_logit_girls <- glm( reg_compensatory ~ bmiz_Age10, data = longdata_girls, family = "binomial"),
+diet_logit_girls <- glm(diet_freq_recode ~ bmiz_Age10, data = longdata_girls, family = "binomial"),
+
+Binge_logit_boys <- glm(binge_monthly ~ bmiz_Age10, data = longdata_boys, family = "binomial"),
+Comp_logit_boys <- glm( reg_compensatory ~ bmiz_Age10, data = longdata_boys, family = "binomial"),
+diet_logit_boys <- glm(diet_freq_recode ~ bmiz_Age10, data = longdata_boys, family = "binomial")
+)
+
+# Tidy the coefficients
+tidy_models <- map_dfr(models, tidy, .id = "model") %>% 
+  filter(term != '(Intercept)' ) %>% 
+  mutate(sex = c('female', 'female', 'female', 'male', 'male', 'male')) %>% 
+  mutate(model = c('Binge', 'Compensatory', 'Dieting', 'Binge', 'Compensatory', 'Dieting' )) %>% 
+  select(model, sex, estimate) %>% 
+  mutate(OR = exp(estimate)) %>% 
+  pivot_wider(names_from = c('sex'), values_from = c ('estimate', 'OR')) %>% 
+  select(c('model', 'OR_female', 'OR_male')) %>% 
+  rename(Female = 'OR_female', 
+         Male = 'OR_male', 
+         Outcome = 'model') 
+
+knitr::kable(tidy_models)
+
+```
+
+@tbl-wtsuppress Presents associations between a crude measure of BMIz suppression in mid adolescence (BMIz at age 10 - BMIz\[14-15.9 years\]) and Binge Eating, Compensatory Behaviors, and Dieting at age 16 (N = 2528 boys; 2708 girls), also using logistic regression with BMIz suppression as single predictor. 1-unit change in BMIz suppression is equivalent to a 1-SD decrease in BMIz between age 10 and mid adolescence.
+
+```{r}
+#| label: tbl-wtsuppress
+#| tbl-cap: Odds Ratios - Mid adolescent BMIz suppression (compared to age 10 BMIz) predicting ED behavior outcomes
+
+rm(list = ls())
+
+load('data/bmi_13_16.RData')
+load('data/BMI_10.RData')
+bmi_13_16 <- bmi_13_16 %>% filter (.model == 'Mean') %>% 
+  arrange(id) %>% 
+  mutate(bmiz_point_est = (bmiz_upper_99-bmiz_lower_99)/2) %>% 
+  mutate(bmiz_suppress = bmiz_point_est - bmiz) %>% 
+  filter(agemos_asess_1 > 168)
+  
+bmi_13_16_mean <- bmi_13_16 %>% 
+  group_by(id) %>% 
+  summarise(bmiz_14_16_mean = mean(bmiz, na.rm = TRUE))
+
+
+bmi_u12_mean <- bmi_13_16 %>% 
+  select(id, sex_z, bmiz_point_est) %>% 
+  unique()
+
+
+bmi_suppress <- full_join(bmi_13_16_mean, bmi_u12_mean)  
+bmi_suppress <- full_join(BMI_age10, bmi_suppress) 
+
+bmi_suppress <- bmi_suppress %>% 
+  mutate(bmiz_suppress = bmiz_point_est - bmiz_14_16_mean) %>% 
+  mutate(bmiz_suppress_anchored = ifelse(bmiz_suppress <0 , 0, bmiz_suppress)) %>% 
+  mutate(bmiz_suppress_10 = bmiz_Age10 - bmiz_14_16_mean) %>% 
+  mutate(bmiz_suppress_anchored_10 = ifelse(bmiz_suppress_10 <0, 0, bmiz_suppress_10))
+
+load('data/compensatory.RData')
+comp_16 <- Comp_beh |>
+  filter(assess_agemos == 198) %>% 
+  select(id, sex, reg_compensatory) %>% 
+  filter(!is.na(reg_compensatory))
+
+load('data/ALSPAC_Cleaned.RData') 
+
+binge_16 <- ALSPAC_cleaned$Binge %>% 
+  filter(assess_agemos == 198) %>% 
+  select(id, sex, binge_monthly) %>% 
+  filter(!is.na(binge_monthly))
+
+diet_16 <- ALSPAC_cleaned$ED_cognitions %>% 
+  filter(assess_agemos == 198) %>% 
+  mutate(diet_freq_recode = case_when (diet_freq > 1 ~ 1, 
+                                       diet_freq <=1 ~ 0)) %>% 
+  select(id, sex, diet_freq_recode) %>% 
+  filter(!is.na(diet_freq_recode))
+
+
+d1 <- full_join(comp_16, bmi_suppress)
+d2 <- full_join(binge_16, d1)
+d3 <- full_join(diet_16, d2)
+
+d3_girls <- d3 %>% 
+  filter(sex == 1) %>% 
+  filter(!is.na(bmiz_suppress_10))
+
+d3_boys <- d3 %>% 
+  filter(sex == 0) %>% 
+  filter(!is.na(bmiz_suppress_10))
+
+
+library(broom)
+# Fit the models
+models <- list(
+  Binge_logit_suppress_girls = glm(binge_monthly ~ bmiz_suppress_anchored_10, data = d3_girls, family = "binomial"),
+  Comp_logit_suppress_girls = glm(reg_compensatory ~ bmiz_suppress_anchored_10, data = d3_girls, family = "binomial"),
+  diet_logit_suppress_girls = glm(diet_freq_recode ~ bmiz_suppress_anchored_10, data = d3_girls, family = "binomial"),
+  Binge_logit_suppress_boys = glm(binge_monthly ~ bmiz_suppress_anchored_10, data = d3_boys, family = "binomial"),
+  Comp_logit_suppress_boys = glm(reg_compensatory ~ bmiz_suppress_anchored_10, data = d3_boys, family = "binomial"),
+  diet_logit_suppress_boys = glm(diet_freq_recode ~ bmiz_suppress_anchored_10, data = d3_boys, family = "binomial")
+)
+
+# Tidy the coefficients
+tidy_models <- map_dfr(models, tidy, .id = "model") %>% 
+  filter(term != '(Intercept)' ) %>% 
+  mutate(sex = c('female', 'female', 'female', 'male', 'male', 'male')) %>% 
+  mutate(model = c('Binge', 'Compensatory', 'Dieting', 'Binge', 'Compensatory', 'Dieting' )) %>% 
+  select(model, sex, estimate) %>% 
+  mutate(OR = exp(estimate)) %>% 
+  pivot_wider(names_from = c('sex'), values_from = c ('estimate', 'OR')) %>% 
+  select(c('model', 'OR_female', 'OR_male')) %>% 
+  rename(Female = 'OR_female', 
+         Male = 'OR_male', 
+         Outcome = 'model') 
+
+knitr::kable(tidy_models)
+```

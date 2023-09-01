@@ -61,6 +61,7 @@ df_16 <- left_join(df_16, fasting_14_16)
 df_16 <- left_join(df_16, fasting_14_16_monthly)
 df_16 <- left_join(df_16, purging_14_16)
 df_16 <- left_join(df_16, purging_14_16_monthly)
+df_16 <- left_join(df_16, binge_14_16)
 
 
 
@@ -94,7 +95,7 @@ bmi_13_16 <- bmi_13_16 |>  group_by(id, .model) |>
                                    sum(overweight_cutoff, na.rm = TRUE)==0 ~0)) |>
   mutate(low_wt_category = factor(case_when(bmi_loss_99 == 0 & thin_cutoff == 0 ~ '0.No Low Wt',
                                             bmi_loss_99 == 0 & thin_cutoff == 1 ~ '1.UW - No BMIZ Reduce',
-                                            bmi_loss_99 == 1 & thin_cutoff == 0 ~ '2.BMIZ Reduced - No UW',
+                                            bmi_loss_99 == 1 & thin_cutoff == 0 ~ '2.BMIZ Reduce - No UW',
                                             bmi_loss_99 == 1 & thin_cutoff == 1 ~ '3.UW and BMIZ Reduced'))) |>
   mutate(high_wt_category = factor(case_when(bmi_gain_99 == 0 & ow_cutoff == 0 ~ '0.No High Wt',
                                              bmi_gain_99 == 0 & ow_cutoff == 1 ~ '1.OW - No BMIZ Elevate',
